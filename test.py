@@ -1,12 +1,10 @@
-from database import get_connection
+import streamlit as st
 
-conn = get_connection()
-cursor = conn.cursor()
+st.title("Test")
 
-cursor.execute("SELECT id, name, email FROM users")
-
-users = cursor.fetchall()
-
-print(users)
-
-conn.close()
+st.markdown(
+    """
+    <h1 style="color:red;">Hello World</h1>
+    """,
+    unsafe_allow_html=True
+)

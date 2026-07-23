@@ -1,8 +1,17 @@
 import streamlit as st
 
+
+def logout():
+    st.session_state.logged_in = False
+    st.session_state.user = None
+    st.session_state.show_signup = False
+    st.session_state.page = "prediction"
+    st.rerun()
+
+
 def show_profile():
 
-    left, middle, right = st.columns([6, 2, 1])
+    left, right = st.columns([8, 2])
 
     with left:
         st.markdown(
@@ -14,20 +23,18 @@ def show_profile():
             unsafe_allow_html=True
         )
 
-    with middle:
-        st.markdown(
-            f"""
-            <div style="text-align:right; padding-top:12px; font-size:18px;">
-                👤 <b>{st.session_state.user['name']}</b>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
     with right:
-        if st.button("Logout"):
-            st.session_state.logged_in = False
-            st.session_state.user = None
-            st.session_state.show_signup = False
-            st.rerun()
-            
+        with st.popover(f"👤 {st.session_state.user['name']}"):
+
+            if st.button("🏠 Dashboard", use_container_width=True):
+                st.session_state.page = "prediction"
+                st.rerun()
+
+            if st.button("📊 Previous Predictions", use_container_width=True):
+                st.session_state.page = "history"
+                st.rerun()
+
+            st.divider()
+
+            if st.button("🚪 Logout", use_container_width=True):
+                logout()

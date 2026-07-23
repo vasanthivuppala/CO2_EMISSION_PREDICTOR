@@ -121,12 +121,17 @@ if not st.session_state.logged_in:
 # -------------------- MAIN APP --------------------
 else:
 
+    # -------------------- Navigation --------------------
+
+    if "page" not in st.session_state:
+        st.session_state.page = "prediction"
+
     show_profile()
 
     st.divider()
 
-    show_prediction()
+    if st.session_state.page == "prediction":
+        show_prediction()
 
-    st.divider()
-
-    show_history()
+    elif st.session_state.page == "history":
+        show_history()
