@@ -1,238 +1,132 @@
 import streamlit as st
-import pickle
-import pandas as pd
-model = pickle.load(open("co2_model.pkl", "rb"))
-preprocessor = pickle.load(open("preprocessor.pkl", "rb"))
+from components.history import show_history
+from components.prediction import show_prediction
+from components.profile import show_profile
+from auth import signup_user, login_user
+from database import create_tables
+
 st.set_page_config(
     page_title="CO₂ Emission Predictor",
     page_icon="🚗",
-    layout="centered"
+    layout="wide"
 )
 st.markdown("""
 <style>
 
-.main {
-    background-color: #0f172a;
+/* Hide Streamlit menu */
+#MainMenu {
+    visibility: hidden;
 }
 
-h1 {
-    text-align: center;
+/* Hide Streamlit footer */
+footer {
+    visibility: hidden;
 }
 
-.stButton > button {
-   height: 60px;
-    font-size: 20px;
-    font-weight: bold;
-    border-radius: 15px;
-    background: linear-gradient(90deg,#2563eb,#7c3aed);
-    color: white;
+/* Hide Streamlit header */
+header {
+    visibility: hidden;
 }
 
-.stDownloadButton > button {
-    width: 100%;
-    height: 60px;
-    border-radius: 15px;
-    font-size: 18px;
-    font-weight: bold;
+/* Remove top padding */
+.block-container{
+    padding-top:1rem;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown("""
-<h1>🚗 CO₂ EMISSION PREDICTOR</h1>
-<h4 style='text-align:center;color:gray'>
-AI Powered Vehicle Emission Analytics
-</h4>
-""", unsafe_allow_html=True)
+create_tables()
 
-st.divider()
+# Session State
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
 
-left, right = st.columns([1.2,1.3])
-with right:
-    st.markdown("""
-    <div style="
-        padding:40px;
-        border-radius:20px;
-        border:2px solid #7c3aed;
-box-shadow: 0 0 20px rgba(124,58,237,0.4);
-        text-align:center;
-        margin-top:70px;
-    ">
-        <h2>🚗 CO₂ Prediction Result</h2>
-        <p>Fill vehicle details and click Predict</p>
-    </div>
-    """, unsafe_allow_html=True)
+if "user" not in st.session_state:
+    st.session_state.user = None
 
-with left:
+if "show_signup" not in st.session_state:
+    st.session_state.show_signup = False
 
-    st.subheader("🚗 Vehicle Information")
 
-    col1, col2 = st.columns(2)
+# -------------------- LOGIN / SIGNUP --------------------
+if not st.session_state.logged_in:
 
-    with col1:
-        make = st.selectbox(
-            "Vehicle Make",
-            [
-                "ACURA",
-                "AUDI",
-                "BMW",
-                "CHEVROLET",
-                "FORD",
-                "HONDA",
-                "TOYOTA"
-            ]
+    if not st.session_state.show_signup:
+
+        st.title("🔐 Login")
+
+        email = st.text_input("Email")
+
+        password = st.text_input(
+            "Password",
+            type="password"
         )
 
-        transmission = st.selectbox(
-            "Transmission",
-            [
-                "A4",
-                "A5",
-                "A6",
-                "A8",
-                "M5",
-                "M6",
-                "AS6",
-                "AS8"
-            ]
+        if st.button("Login", use_container_width=True):
+
+            success, result = login_user(email, password)
+
+            if success:
+                st.session_state.logged_in = True
+                st.session_state.user = result
+                st.success("Login Successful!")
+                st.rerun()
+
+            else:
+                st.error(result)
+
+        st.write("---")
+        st.write("Don't have an account?")
+
+        if st.button("Create Account"):
+            st.session_state.show_signup = True
+            st.rerun()
+
+    else:
+
+        st.title("📝 Create Account")
+
+        name = st.text_input("Name")
+
+        email = st.text_input("Email")
+
+        password = st.text_input(
+            "Password",
+            type="password"
         )
 
-        model_year = st.number_input(
-            "Model Year",
-            min_value=1995,
-            max_value=2025,
-            value=2020
-        )
+        if st.button("Sign Up", use_container_width=True):
 
-        cylinders = st.number_input(
-            "Number of Cylinders",
-            min_value=2,
-            max_value=16,
-            value=4
-        )
+            success, message = signup_user(
+                name,
+                email,
+                password
+            )
 
-    with col2:
-        vehicle_class = st.selectbox(
-            "Vehicle Class",
-            [
-                "COMPACT",
-                "MID - SIZE",
-                "SUV",
-                "SUBCOMPACT",
-                "FULL - SIZE",
-                "MINIVAN"
-            ]
-        )
+            if success:
+                st.success(message)
 
-        fuel_type = st.selectbox(
-            "Fuel Type",
-            ["X", "Z", "D", "E", "N"]
-        )
+            else:
+                st.error(message)
 
-        engine_size = st.number_input(
-            "Engine Size (L)",
-            min_value=0.5,
-            max_value=10.0,
-            value=2.0
-        )
+        st.write("---")
+        st.write("Already have an account?")
 
-        fuel_consumption = st.number_input(
-            "Fuel Consumption Combined (L/100 km)",
-            min_value=1.0,
-            max_value=30.0,
-            value=8.0
-        )
+        if st.button("Back to Login"):
+            st.session_state.show_signup = False
+            st.rerun()
+
+
+# -------------------- MAIN APP --------------------
+else:
+
+    show_profile()
 
     st.divider()
 
-    predict_btn = st.button(
-    "🚗 Predict CO₂ Emission",
-    use_container_width=True
-)
+    show_prediction()
 
-if predict_btn:
+    st.divider()
 
-    input_data = pd.DataFrame({
-        'MODEL YEAR': [model_year],
-        'MAKE': [make],
-        'VEHICLE CLASS': [vehicle_class],
-        'ENGINE SIZE (L)': [engine_size],
-        'CYLINDERS': [cylinders],
-        'TRANSMISSION': [transmission],
-        'FUEL TYPE': [fuel_type],
-        'FUEL CONSUMPTION COMB (L/100 km)': [fuel_consumption]
-    })
-
-    processed_data = preprocessor.transform(input_data)
-
-    prediction = model.predict(processed_data)
-
-    report_df = pd.DataFrame({
-        "Attribute": [
-            "Model Year",
-            "Make",
-            "Vehicle Class",
-            "Engine Size (L)",
-            "Cylinders",
-            "Transmission",
-            "Fuel Type",
-            "Fuel Consumption (L/100 km)",
-            "Predicted CO2 Emission (g/km)"
-        ],
-        "Value": [
-            model_year,
-            make,
-            vehicle_class,
-            engine_size,
-            cylinders,
-            transmission,
-            fuel_type,
-            fuel_consumption,
-            round(prediction[0], 2)
-        ]
-    })
-
-    csv = report_df.to_csv(index=False)
-
-    co2 = prediction[0]
-
-    if co2 < 180:
-        category = "🟢 Low Emission"
-        border_color = "#22c55e"
-
-    elif co2 < 300:
-        category = "🟡 Moderate Emission"
-        border_color = "#f59e0b"
-
-    else:
-        category = "🔴 High Emission"
-        border_color = "#ef4444"
-
-    with right:
-
-        st.markdown(
-            f"""
-            <div style="
-                padding:25px;
-                border-radius:15px;
-                border:3px solid {border_color};
-                text-align:center;
-                margin-top:20px;
-                margin-bottom:20px;
-            ">
-                <h3>🚗 Predicted CO₂ Emission</h3>
-                <h1>{co2:.2f} g/km</h1>
-                <h4>{category}</h4>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        st.download_button(
-            label="📥 Download Vehicle Report",
-            data=csv,
-            file_name="vehicle_emission_report.csv",
-            mime="text/csv",
-            use_container_width=True
-        )
+    show_history()
